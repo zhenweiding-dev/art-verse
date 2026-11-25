@@ -1,0 +1,341 @@
+:root {
+  --ink: #ece7de;
+  --ink-dim: rgba(236, 231, 222, 0.68);
+  --shadow-text: 0 1px 2px rgba(0, 0, 0, 0.35), 0 0 16px rgba(0, 0, 0, 0.22);
+  --veil: rgba(0, 0, 0, 0.1); /* VEIL in newtab.js */
+  /* Sizes follow the window height, from a MacBook window (~844px) to a 5K screen (~1330px). */
+  --fs-small: clamp(13px, 1.2vh, 14px);
+  --fs-body: clamp(16px, 1.45vh, 18px);
+  --fs-tiny: clamp(11px, 0.9vh, 12px);
+  --edge: clamp(40px, 6vh, 88px); /* one outer margin for the corner icons and the bottom row */
+  --icon-size: calc(var(--fs-body) * 1.5);
+  --sites-opacity: 0.42; /* faint on purpose */
+  --icon-shadow: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.4));
+  --fav-on: #f0c75e;
+  --site-icon-filter: brightness(0) invert(1);
+  --poem-font: "Lantinghei TC", "Lantinghei SC", "PingFang TC", "Microsoft JhengHei", "Noto Sans CJK TC", sans-serif;
+  --ui-font: "Helvetica Neue", "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+}
+[data-script="hans"] { --poem-font: "Lantinghei SC", "Lantinghei TC", "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif; }
+
+/* Dark text where the painting behind is light (data-tone set by applyTones). Children inherit computed values, so
+   colour and shadow are declared again here. */
+[data-tone="dark"] {
+  --ink: #2a2622;
+  --ink-dim: rgba(42, 38, 34, 0.72);
+  --shadow-text: 0 1px 2px rgba(255, 255, 255, 0.3), 0 0 16px rgba(255, 255, 255, 0.22);
+  --icon-shadow: drop-shadow(0 1px 2px rgba(255, 255, 255, 0.35));
+  --fav-on: #a8730c;
+  --site-icon-filter: brightness(0);
+  color: var(--ink);
+  text-shadow: var(--shadow-text);
+}
+
+html, body {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  background: #141311;
+  color: var(--ink);
+  font-family: var(--ui-font);
+  -webkit-font-smoothing: antialiased;
+}
+a { color: inherit; }
+button { font: inherit; color: inherit; cursor: pointer; }
+[hidden] { display: none !important; }
+
+/* ---------- wallpaper ---------- */
+#art {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+}
+#art.shown { opacity: 1; }
+body::after { content: ""; position: fixed; inset: 0; background: var(--veil); pointer-events: none; }
+
+#corner {
+  position: fixed;
+  top: var(--edge);
+  right: var(--edge);
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 1.1em;
+  color: var(--ink);
+}
+#corner > * {
+  display: block;
+  width: var(--icon-size);
+  height: var(--icon-size);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  opacity: 0.85;
+  transition: opacity 0.15s;
+}
+#corner > *:hover, #settings-btn[aria-expanded="true"] { opacity: 1; }
+#corner svg { display: block; width: 100%; height: 100%; filter: var(--icon-shadow); }
+
+/* ---------- columns ---------- */
+#cols {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+.col {
+  position: relative;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 8vh 3.2vw calc(4.5vh + 1.6em); /* bottom room keeps the blocks clear of the bottom row */
+  display: flex;
+  flex-direction: column;
+  text-shadow: var(--shadow-text);
+}
+/* Favourite and refresh: the drawn glyph (~72% of the box) is as tall as the caption text. */
+.icon-btn {
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  width: calc(var(--fs-small) / 0.72);
+  height: calc(var(--fs-small) / 0.72);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ink-dim);
+  transition: color 0.15s;
+}
+.icon-btn:hover { color: var(--ink); }
+.icon-btn:disabled { cursor: progress; }
+.icon-btn svg { width: 100%; height: 100%; filter: var(--icon-shadow); }
+.fav.on, .fav.on:hover { color: var(--fav-on); }
+
+/* ---------- bottom row: most visited sites and the caption ---------- */
+#bottom {
+  position: fixed;
+  z-index: 2;
+  left: var(--edge);
+  right: var(--edge);
+  bottom: var(--edge);
+  text-shadow: var(--shadow-text);
+  display: flex;
+  flex-direction: column;
+  gap: 1.6vh;
+}
+#sites {
+  display: flex;
+  flex-wrap: nowrap;
+  overflow: hidden;
+  gap: clamp(14px, 1.6vw, 28px);
+}
+#sites a {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 0.7em;
+  width: fit-content;
+  max-width: 100%;
+  font-size: var(--fs-tiny);
+  color: var(--ink);
+  opacity: var(--sites-opacity);
+  text-shadow: none;
+  text-decoration: none;
+  transition: transform 0.15s, opacity 0.15s;
+}
+#sites a:hover { transform: translateY(-2px); opacity: 1; }
+#sites .icon { flex: none; width: 1.25em; height: 1.25em; display: grid; place-items: center; }
+#sites .icon img { width: 100%; height: 100%; filter: var(--site-icon-filter); }
+#sites .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#sites .empty { margin: 0; color: var(--ink-dim); font-size: 14px; line-height: 1.7; max-width: 18em; }
+#caption {
+  display: block;
+  flex: none;
+  width: min(26em, calc(100% - var(--fs-small) * 3 - 2.8em)); /* fixed slot, so the buttons keep their place */
+  min-width: 0;
+  font-size: var(--fs-small);
+  color: var(--ink-dim);
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#caption:hover { color: var(--ink); text-decoration: underline; }
+#caption-title { font-style: italic; }
+#caption-row { display: flex; align-items: center; gap: 0.7em; min-height: 1.6em; }
+.fav-msg, #art-note { font-size: var(--fs-small); color: var(--ink-dim); }
+.fav-msg:empty, #art-note:empty { display: none; }
+#art-note { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ---------- clock and weather ---------- */
+#c-left .center {
+  flex: none;
+  height: 66vh; /* same as #verse, so the tops line up */
+  margin: auto 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+#time {
+  font-size: clamp(90px, min(10vh, 5vw), 150px);
+  font-weight: 200;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+#date { margin-top: 0.8em; font-size: var(--fs-body); letter-spacing: 0.04em; }
+#weather { display: flex; align-items: center; gap: 0.55em; margin-top: 1.2vh; font-size: var(--fs-body); cursor: pointer; }
+#weather-icon { width: 1.15em; height: 1.15em; }
+#weather-icon svg { display: block; width: 100%; height: 100%; }
+#weather-temp { font-weight: 500; }
+#weather-text, #weather-range, #weather-city { color: var(--ink-dim); }
+#weather-city:not(:empty)::before { content: "· "; }
+#weather:hover #weather-city, #weather:hover #weather-text { color: var(--ink); }
+#weather-source { font-size: var(--fs-small); color: var(--ink-dim); opacity: 0.6; text-decoration: none; }
+#weather-source::before { content: "· "; }
+#weather-source:hover { opacity: 1; }
+#weather-city:empty ~ #weather-source { display: none; } /* only next to weather data */
+
+/* ---------- classical text ---------- */
+#verse {
+  flex: none;
+  height: 66vh;
+  max-width: 100%;
+  margin: auto 0;
+  align-self: center;
+  display: flex;
+  flex-direction: column;
+  font-family: var(--poem-font);
+  font-synthesis: none;
+  --head-room: calc(var(--fs-body) * 0.9); /* brush heads before the first character */
+  --tail-room: calc(var(--fs-body) * 1.6); /* brush tails after the last */
+  /* 20 characters a line; resolves where font-size is --fs-body. */
+  --line: calc(20 * (1ic + 0.04em) + 0.3em);
+}
+#verse header {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.8em;
+  padding-left: var(--head-room);
+  font-size: var(--fs-body);
+}
+.title-slot {
+  position: relative;
+  flex: none;
+  width: var(--line);
+  display: flex;
+  align-items: baseline;
+  gap: 1em;
+  min-width: 0;
+  font-size: var(--fs-body);
+}
+#verse-title { flex: 0 1 auto; min-width: 0; margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-size: clamp(19px, 1.75vh, 22px); font-weight: 600; letter-spacing: 0.04em; }
+#verse-link { text-decoration: none; }
+#verse-link:hover { text-decoration: underline; }
+#verse-meta { flex: none; font-size: var(--fs-small); letter-spacing: 0.1em; color: var(--ink-dim); white-space: nowrap; }
+.verse-actions { flex: none; display: flex; flex-wrap: wrap; align-items: center; gap: 0.4em 0.6em; }
+/* Messages wrap at the text width without widening the block. */
+.verse-actions, #verse-note { align-self: stretch; box-sizing: border-box; padding-right: var(--tail-room); contain: inline-size; }
+.verse-actions .fav-msg { flex-basis: 100%; line-height: 1.6; }
+#verse-note { margin: 0; font-size: var(--fs-small); line-height: 1.6; color: var(--ink-dim); }
+#verse-note:empty { display: none; }
+#verse-body {
+  flex: 1;
+  min-height: 0;
+  margin-top: 2vh;
+  padding: 0.4em var(--tail-room) 0.8em var(--head-room);
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+  font-size: var(--fs-body);
+  line-height: 2.2;
+  letter-spacing: 0.04em;
+}
+#verse-text { width: var(--line); max-width: 100%; }
+#verse-text p, #verse-text h2, #verse-text h3, #verse-text h4 { margin: 0; }
+#verse-text p { margin-bottom: 1.1em; }
+#verse-text .poem p { margin-bottom: 0; }
+#verse-text h2, #verse-text h3, #verse-text h4 { font-size: 1em; font-weight: 600; }
+#verse-text .center { text-align: center; }
+#verse-text table { border-collapse: collapse; }
+#verse-text td, #verse-text th { padding: 0; vertical-align: top; }
+#verse-text .message { color: var(--ink-dim); font-size: 0.85em; }
+
+/* Brush strokes (brushSvg masks) blur the painting under each line. No ancestor may have a filter, mask or
+   opacity, or the blur sees nothing. */
+.title-slot, #verse-text { position: relative; z-index: 0; }
+.stroke {
+  position: absolute;
+  z-index: -1;
+  pointer-events: none;
+  backdrop-filter: blur(10px);
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
+
+/* ---------- settings ---------- */
+/* The card shows the painting behind it under the page's veil; its pieces take their tone like the page's blocks. */
+#settings {
+  --p-track: rgba(236, 231, 222, 0.12);
+  --p-on: rgba(236, 231, 222, 0.26);
+  position: fixed;
+  z-index: 10;
+  top: calc(var(--edge) + var(--icon-size) + 12px);
+  right: var(--edge);
+  width: 392px;
+  max-height: calc(100vh - var(--edge) - var(--icon-size) - 36px);
+  box-sizing: border-box;
+  overflow-y: auto;
+  scrollbar-width: none;
+  padding: 22px 24px 24px;
+  border-radius: 16px;
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.35);
+  color: var(--ink);
+  background-color: #141311;
+  background-image: linear-gradient(var(--veil), var(--veil)), var(--art-url, none);
+  background-size: auto, cover;
+  background-position: center;
+  background-attachment: scroll, fixed;
+  font-size: 13.5px;
+  line-height: 1.5;
+  text-shadow: var(--shadow-text);
+}
+#settings [data-tone="dark"] { --p-track: rgba(42, 38, 34, 0.1); --p-on: rgba(42, 38, 34, 0.2); }
+#settings header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+#settings h2 { margin: 0; font-size: 17px; font-weight: 500; letter-spacing: 0.04em; }
+#settings-close { width: 28px; height: 28px; border: 0; background: none; color: var(--ink-dim); font-size: 22px; line-height: 1; text-shadow: var(--shadow-text); }
+#settings-close:hover { color: var(--ink); }
+#settings .row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0; padding: 8px 0; }
+#settings .label { white-space: nowrap; }
+#settings .hint { margin: 2px 0 10px; color: var(--ink-dim); font-size: 12.5px; }
+#settings .hint:empty { display: none; }
+#city-input { width: 10em; padding: 4px 10px; border: 0; border-radius: 8px; background: var(--p-track); color: var(--ink);
+  font: inherit; text-align: right; text-shadow: var(--shadow-text); outline: none; }
+#city-input:focus { background: var(--p-on); }
+#city-input::placeholder { color: var(--ink-dim); }
+.seg { display: inline-flex; flex: none; gap: 2px; padding: 2px; border-radius: 9px; background: var(--p-track); }
+.seg button { padding: 3px 11px; border: 0; border-radius: 7px; background: none; color: var(--ink-dim); font-size: 12.5px; text-shadow: var(--shadow-text); }
+.seg button:hover { color: var(--ink); }
+.seg button[aria-pressed="true"] { background: var(--p-on); color: var(--ink); }
+#settings .art-countries { margin-top: 14px; }
+.country-group { display: flex; gap: 10px; margin: 8px 0; }
+.country-group .continent { flex: none; width: 4.2em; padding-top: 3px; color: var(--ink-dim); font-size: 12px; }
+.country-group .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { position: relative; display: inline-flex; align-items: baseline; gap: 5px; padding: 3px 10px; border-radius: 999px;
+  background: var(--p-on); cursor: pointer; user-select: none; font-size: 12.5px; }
+.chip input { position: absolute; width: 0; height: 0; opacity: 0; } /* hidden but reachable by keyboard */
+.chip:has(input:focus-visible) { outline: 2px solid var(--ink-dim); outline-offset: 1px; }
+.chip .n { color: var(--ink-dim); font-size: 11px; font-variant-numeric: tabular-nums; }
+.chip:not(:has(input:checked)) { background: var(--p-track); color: var(--ink-dim); text-decoration: line-through; }

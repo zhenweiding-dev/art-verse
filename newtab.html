@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="zh">
+<head>
+  <meta charset="utf-8">
+  <!-- The Art Institute of Chicago image server refuses some referrers. -->
+  <meta name="referrer" content="no-referrer">
+  <title>New Tab</title>
+  <link rel="stylesheet" href="newtab.css">
+</head>
+<body>
+  <img id="art" alt="">
+
+  <div id="corner">
+    <a id="gmail" href="https://mail.google.com/" target="_blank" rel="noopener" title="Gmail" aria-label="Gmail"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" fill-opacity="0.62" d="M3 5.6 12 12.3 21 5.6v4.6l-9 6.6-9-6.6z"/><rect fill="currentColor" x="2.5" y="5" width="4.2" height="14.2" rx="1.6"/><rect fill="currentColor" x="17.3" y="5" width="4.2" height="14.2" rx="1.6"/></svg></a>
+    <button id="settings-btn" type="button" data-i18n-label="settings" aria-expanded="false" aria-controls="settings"><svg viewBox="0 0 24 24" aria-hidden="true"><rect fill="currentColor" x="3" y="5" width="18" height="3.2" rx="1.6"/><rect fill="currentColor" fill-opacity="0.62" x="3" y="10.5" width="18" height="3.2" rx="1.6"/><rect fill="currentColor" x="3" y="16" width="18" height="3.2" rx="1.6"/></svg></button>
+  </div>
+
+  <main id="cols">
+    <section class="col" id="c-left">
+      <div class="center">
+        <div id="time"></div>
+        <div id="date"></div>
+        <div id="weather" role="button" tabindex="0" data-i18n-label="weatherLabel">
+          <span id="weather-icon"></span>
+          <span id="weather-temp"></span>
+          <span id="weather-text"></span>
+          <span id="weather-range"></span>
+          <span id="weather-city"></span>
+          <!-- Open-Meteo's licence asks for a link next to its data. -->
+          <a id="weather-source" href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="col">
+      <article id="verse" lang="zh-Hant">
+        <header>
+          <div class="title-slot">
+            <h2 id="verse-title"><a id="verse-link" target="_blank" rel="noopener"></a></h2>
+            <span id="verse-meta"></span>
+          </div>
+          <div class="verse-actions">
+            <button id="verse-fav" class="icon-btn fav" type="button" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" fill-opacity="0.5" d="M12.6 7.8L14.07 11.38L17.93 11.67L14.98 14.17L15.89 17.93L12.6 15.9L9.31 17.93L10.22 14.17L7.27 11.67L11.13 11.38Z"/><path fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" d="M12 3.1L14.53 9.22L21.13 9.73L16.09 14.03L17.64 20.47L12 17L6.36 20.47L7.91 14.03L2.87 9.73L9.47 9.22Z"/></svg></button>
+            <button id="verse-next" class="icon-btn" type="button" data-i18n-label="verseNext"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" fill-opacity="0.5" d="M17.26 14.32A5.6 5.6 0 0 1 6.74 10.48L8.81 11.24A3.4 3.4 0 0 0 15.19 13.56Z"/><path fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" d="M18.88 7.58A8.4 8.4 0 1 1 6.83 5.78"/><path fill="currentColor" d="M5.23 3.73L9.82 3.44L8.43 7.83Z"/></svg></button>
+            <span class="fav-msg" role="status"></span>
+          </div>
+          <p id="verse-note" role="status"></p>
+        </header>
+        <div id="verse-body"><div id="verse-text"></div></div>
+      </article>
+    </section>
+  </main>
+
+  <div id="bottom">
+    <nav id="sites"></nav>
+    <div id="caption-row">
+      <a id="caption" target="_blank" rel="noopener"><i id="caption-title"></i><span id="caption-by"></span></a>
+      <button id="art-fav" class="icon-btn fav" type="button" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" fill-opacity="0.5" d="M12.6 7.8L14.07 11.38L17.93 11.67L14.98 14.17L15.89 17.93L12.6 15.9L9.31 17.93L10.22 14.17L7.27 11.67L11.13 11.38Z"/><path fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" d="M12 3.1L14.53 9.22L21.13 9.73L16.09 14.03L17.64 20.47L12 17L6.36 20.47L7.91 14.03L2.87 9.73L9.47 9.22Z"/></svg></button>
+      <button id="art-next" class="icon-btn" type="button" data-i18n-label="artNext"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" fill-opacity="0.5" d="M17.26 14.32A5.6 5.6 0 0 1 6.74 10.48L8.81 11.24A3.4 3.4 0 0 0 15.19 13.56Z"/><path fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" d="M18.88 7.58A8.4 8.4 0 1 1 6.83 5.78"/><path fill="currentColor" d="M5.23 3.73L9.82 3.44L8.43 7.83Z"/></svg></button>
+      <span class="fav-msg" role="status"></span>
+      <span id="art-note" role="status"></span>
+    </div>
+  </div>
+
+  <aside id="settings" role="dialog" data-i18n-label="settings" hidden>
+    <header><h2 data-i18n="settings"></h2><button id="settings-close" type="button" data-i18n-label="close">×</button></header>
+    <div class="row"><span class="label" data-i18n="language"></span>
+      <div class="seg" data-key="lang"><button type="button" data-v="auto" data-i18n="auto"></button><button type="button" data-v="zh">中文</button><button type="button" data-v="en">English</button></div></div>
+    <div class="row"><span class="label" data-i18n="script"></span>
+      <div class="seg" data-key="script"><button type="button" data-v="hant">繁體</button><button type="button" data-v="hans">简体</button></div></div>
+    <form class="row" id="city-form"><label class="label" for="city-input" data-i18n="city"></label>
+      <input id="city-input" type="text" autocomplete="off" spellcheck="false" data-i18n-placeholder="cityPlaceholder"></form>
+    <p class="hint" id="city-msg"></p>
+    <div class="row"><span class="label" data-i18n="unit"></span>
+      <div class="seg" data-key="unit"><button type="button" data-v="c">°C</button><button type="button" data-v="f">°F</button></div></div>
+    <div class="row"><span class="label" data-i18n="gmail"></span>
+      <div class="seg" data-key="gmail"><button type="button" data-v="on" data-i18n="show"></button><button type="button" data-v="off" data-i18n="hide"></button></div></div>
+    <section class="art-countries">
+      <div class="label" data-i18n="paintings"></div>
+      <div id="country-groups"></div>
+      <p class="hint" id="art-total"></p>
+    </section>
+  </aside>
+
+  <script src="newtab.js"></script>
+</body>
+</html>

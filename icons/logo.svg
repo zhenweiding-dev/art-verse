@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <defs>
+    <linearGradient id="ink" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="104">
+      <stop offset="0" stop-color="#ece7de"/><stop offset="0.35" stop-color="#ece7de"/><stop offset="1" stop-color="#ece7de" stop-opacity="0.35"/>
+    </linearGradient>
+    <filter id="dry" x="-10%" y="-10%" width="120%" height="120%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.22" numOctaves="2" seed="3" result="grain"/>
+      <feDisplacementMap in="SourceGraphic" in2="grain" scale="3.5" xChannelSelector="R" yChannelSelector="G" result="shape"/>
+      <feTurbulence type="fractalNoise" baseFrequency="0.5 0.03" numOctaves="2" seed="9" result="n"/>
+      <feColorMatrix in="n" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 2.4 0 0 0 -0.55" result="a"/>
+      <feComposite in="shape" in2="a" operator="arithmetic" k1="1.3" k2="1" k3="0" k4="-0.5"/>
+    </filter>
+  </defs>
+  <rect x="4" y="4" width="120" height="120" rx="27" fill="#24201c"/>
+  <g transform="translate(12 52) rotate(-8 52 12)">
+    <path transform="translate(0 24.00) rotate(-90)" d="M23.86 2.08 L24.00 4.58 L24.11 7.07 L24.18 9.57 L24.21 12.06 L24.20 14.56 L24.13 17.06 L24.00 19.55 L23.82 22.05 L23.59 24.54 L23.30 27.04 L22.96 29.54 L22.58 32.03 L22.17 34.53 L21.72 37.02 L21.26 39.52 L20.78 42.02 L20.50 44.51 L20.22 47.01 L19.93 49.50 L19.65 52.00 L19.37 54.50 L19.09 56.99 L18.82 59.49 L18.56 61.98 L18.30 64.48 L18.06 66.98 L17.83 69.47 L17.61 71.97 L17.40 74.46 L17.20 76.96 L17.02 79.46 L16.86 81.95 L16.71 84.45 L16.57 86.94 L16.45 89.44 L16.34 91.94 L16.25 94.43 L16.17 96.93 L16.11 99.42 L16.06 101.92 L3.42 101.92 L3.15 99.42 L2.91 96.93 L2.68 94.43 L2.48 91.94 L2.30 89.44 L2.15 86.94 L2.02 84.45 L1.92 81.95 L1.84 79.46 L1.78 76.96 L1.75 74.46 L1.74 71.97 L1.76 69.47 L1.79 66.98 L1.84 64.48 L1.91 61.98 L2.00 59.49 L2.11 56.99 L2.23 54.50 L2.36 52.00 L2.51 49.50 L2.67 47.01 L2.83 44.51 L3.00 42.02 L2.98 39.52 L2.97 37.02 L2.98 34.53 L3.00 32.03 L3.05 29.54 L3.13 27.04 L3.24 24.54 L3.37 22.05 L3.55 19.55 L3.75 17.06 C2.55 3.86 7.06 0.88 23.86 2.08 Z" fill="url(#ink)" filter="url(#dry)"/>
+  </g>
+</svg>
