@@ -24,7 +24,7 @@ const I18N = {
     countries: { US: '美国', FR: '法国', IT: '意大利', NL: '荷兰', GB: '英国', FL: '佛兰德', ES: '西班牙', DE: '德国',
       AT: '奥地利', JP: '日本', CN: '中国', IN: '印度', KR: '朝鲜半岛', OTHER: '其他' },
     weatherLabel: '天气，点一下打开设置', noCity: '点这里填城市，显示天气',
-    minsAgo: (place, m) => `${place} · ${m} 分钟前`, weatherFailed: (msg) => `天气取不到：${msg}，刷新页面再试`,
+    weatherFailed: (msg) => `天气取不到：${msg}，刷新页面再试`,
     wTimeout: '天气服务 10 秒没有响应', wOffline: '连不上天气服务（没联网？）', wHttp: (s) => `天气服务返回 HTTP ${s}`,
     looking: '正在查找……', notFound: (name) => `找不到「${name}」，换个写法试试`, tryLater: (msg) => `${msg}，稍后再试`,
     museums: { aic: '芝加哥艺术博物馆', cma: '克利夫兰艺术博物馆', nga: '华盛顿国家美术馆' },
@@ -39,7 +39,7 @@ const I18N = {
     wsError: (info) => `维基文库报错：${info}`,
     favAdd: (art) => (art ? '收藏这幅画' : '收藏这一篇'), favRemove: (art) => (art ? '取消收藏这幅画' : '取消收藏这一篇'),
     favFailed: (why) => `没有存成：${why}。再点一次星号重试。`,
-    favFolder: '新标签页收藏', favPoems: '诗文', favArt: '画作', anonymous: '佚名', untitled: '未命名',
+    anonymous: '佚名', untitled: '未命名',
     line: (label, value) => `${label}：${value}`, source: '原文', image: '图片', savedOn: (d) => `收藏于 ${d}`,
     dlTimeout: '下载两分钟还没完成，网络可能太慢', dlNoSpace: '磁盘空间不够', dlFile: (c) => `文件写不进「下载」文件夹（${c}）`,
     dlNetwork: (c) => `下载时网络出错，可能是没联网（${c}）`, dlServer: (c) => `博物馆的图片服务器出错（${c}）`,
@@ -55,7 +55,7 @@ const I18N = {
     countries: { US: 'United States', FR: 'France', IT: 'Italy', NL: 'Netherlands', GB: 'Britain', FL: 'Flanders',
       ES: 'Spain', DE: 'Germany', AT: 'Austria', JP: 'Japan', CN: 'China', IN: 'India', KR: 'Korea', OTHER: 'Other' },
     weatherLabel: 'Weather; click to open the settings', noCity: 'Click here to set a city for the weather',
-    minsAgo: (place, m) => `${place} · ${m} min ago`, weatherFailed: (msg) => `No weather: ${msg}. Reload to try again.`,
+    weatherFailed: (msg) => `No weather: ${msg}. Reload to try again.`,
     wTimeout: 'The weather service did not answer in 10 seconds', wOffline: 'Cannot reach the weather service (offline?)',
     wHttp: (s) => `The weather service returned HTTP ${s}`,
     looking: 'Looking up…', notFound: (name) => `No place called “${name}”; try another spelling`,
@@ -74,7 +74,7 @@ const I18N = {
     favAdd: (art) => (art ? 'Save this painting' : 'Save this text'),
     favRemove: (art) => (art ? 'Remove this painting from favourites' : 'Remove this text from favourites'),
     favFailed: (why) => `Not saved: ${why}. Click the star to try again.`,
-    favFolder: 'New Tab Favorites', favPoems: 'Texts', favArt: 'Paintings', anonymous: 'Anonymous', untitled: 'Untitled',
+    anonymous: 'Anonymous', untitled: 'Untitled',
     line: (label, value) => `${label}: ${value}`, source: 'Source', image: 'Image', savedOn: (d) => `Saved on ${d}`,
     dlTimeout: 'the download did not finish in two minutes', dlNoSpace: 'the disk is full',
     dlFile: (c) => `the file could not be written to Downloads (${c})`, dlNetwork: (c) => `the network failed, maybe offline (${c})`,
@@ -344,8 +344,7 @@ async function loadWeather(force = false) {
     renderWeather(data, city);
   } catch (e) {
     console.warn('Weather failed:', e);
-    if (usable) $('#weather-city').textContent = t('minsAgo', placeName(city), Math.round((Date.now() - cached.at) / 60000));
-    else showWeatherText(t('weatherFailed', e.message));
+    if (!usable) showWeatherText(t('weatherFailed', e.message)); // otherwise the cached weather stays as it is
   }
 }
 
@@ -426,6 +425,7 @@ async function showNextArt() {
     }
     artShown = true;
     document.documentElement.style.setProperty('--art-url', `url("${img.currentSrc}")`); // background of both cards
+    fitArt();
     img.classList.add('shown');
     applyTones();
     rememberLoaded(trying);
@@ -890,21 +890,40 @@ function blockRects() {
   ];
 }
 
-// Mean luma of the painting (object-fit: cover, centred) under a viewport rectangle, on a 6 x 6 lattice.
+// The painting keeps the size it has on the whole screen, shown whole and centred: resizing the window shows more or
+// less of it instead of scaling it, and where it does not reach, the page colour (--page-bg) shows.
+function artBox(ratio) {
+  const [sw, sh] = [screen.width, screen.height];
+  return ratio > sw / sh ? [sw, sw / ratio] : [sh * ratio, sh];
+}
+
+function fitArt() {
+  if (!currentArt) return;
+  const [w, h] = artBox(currentArt.r);
+  document.documentElement.style.setProperty('--art-w', `${w}px`);
+  document.documentElement.style.setProperty('--art-h', `${h}px`);
+}
+
+const pageLuma = () => {
+  const [r, g, b] = getComputedStyle(document.body).backgroundColor.match(/\d+/g).map(Number);
+  return 0.299 * r + 0.587 * g + 0.114 * b;
+};
+
+// Mean luma under a viewport rectangle, on a 6 x 6 lattice: the painting where it is (centred, size from artBox),
+// the page colour elsewhere or when no painting is shown.
 function lumaUnder(rect, grid, ratio) {
-  const W = innerWidth;
-  const H = innerHeight;
-  const [iw, ih] = ratio > W / H ? [H * ratio, H] : [W, W / ratio];
-  const ox = (W - iw) / 2;
-  const oy = (H - ih) / 2;
+  const page = pageLuma();
+  if (!grid) return page * VEIL;
+  const [iw, ih] = artBox(ratio);
+  const ox = (innerWidth - iw) / 2;
+  const oy = (innerHeight - ih) / 2;
   let sum = 0;
   for (let i = 0; i < 6; i++) {
     for (let j = 0; j < 6; j++) {
-      const x = rect.left + (rect.right - rect.left) * (i + 0.5) / 6;
-      const y = rect.top + (rect.bottom - rect.top) * (j + 0.5) / 6;
-      const col = Math.min(GRID_W - 1, Math.max(0, Math.floor(((x - ox) / iw) * GRID_W)));
-      const row = Math.min(GRID_H - 1, Math.max(0, Math.floor(((y - oy) / ih) * GRID_H)));
-      sum += parseInt(grid[row * GRID_W + col], 16) * 16 + 8;
+      const u = (rect.left + (rect.right - rect.left) * (i + 0.5) / 6 - ox) / iw;
+      const v = (rect.top + (rect.bottom - rect.top) * (j + 0.5) / 6 - oy) / ih;
+      if (!(u >= 0 && u < 1 && v >= 0 && v < 1)) sum += page;
+      else sum += parseInt(grid[Math.floor(v * GRID_H) * GRID_W + Math.floor(u * GRID_W)], 16) * 16 + 8;
     }
   }
   return (sum / 36) * VEIL;
@@ -914,7 +933,7 @@ function applyTones() {
   const a = artShown ? currentArt : null;
   const grid = a?.l?.length === GRID_W * GRID_H ? a.l : null;
   for (const [el, rect] of blockRects()) {
-    if (grid && rect && lumaUnder(rect, grid, a.r) > DARK_TEXT_ABOVE) el.dataset.tone = 'dark';
+    if (rect && lumaUnder(rect, grid, a?.r) > DARK_TEXT_ABOVE) el.dataset.tone = 'dark';
     else delete el.dataset.tone;
   }
 }
@@ -1023,7 +1042,8 @@ function brushSvg(boxW, boxH, seed) {
 }
 
 // ---------- favourites ----------
-// Saved as files under Downloads/<favFolder>/<favPoems|favArt>. The stored list ({ poems, art }, newest first) keeps
+// Saved as files under Downloads/New Tab Favorites/Texts|Paintings, in English whatever the interface language, so a
+// language switch does not start a second folder. The stored list ({ poems, art }, newest first) keeps
 // each page URL ("id") and download ids ("files") so un-starring deletes the files; an entry is added only once all
 // its downloads have finished.
 const favBusy = new Set(); // ids whose files are being saved or deleted
@@ -1071,7 +1091,7 @@ async function saveFiles(kind, files) {
     for (const f of files) {
       ids.push(await chrome.downloads.download({
         url: f.url || `data:text/markdown;charset=utf-8,${encodeURIComponent(f.text)}`,
-        filename: `${t('favFolder')}/${t(kind === 'art' ? 'favArt' : 'favPoems')}/${f.name}`,
+        filename: `New Tab Favorites/${kind === 'art' ? 'Paintings' : 'Texts'}/${f.name}`,
         conflictAction: 'uniquify', saveAs: false,
       }));
     }
@@ -1187,12 +1207,9 @@ $('#art-fav').addEventListener('click', () => {
   const a = currentArt;
   if (a) toggleFav($('#art-fav'), 'art', a.u, () => artFiles(a));
 });
-// The weather line opens the settings; the Open-Meteo credit inside it is a plain link.
-$('#weather').addEventListener('click', (e) => {
-  if (!e.target.closest('#weather-source')) openSettings(true, true);
-});
+$('#weather').addEventListener('click', () => openSettings(true, true));
 $('#weather').addEventListener('keydown', (e) => {
-  if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) {
+  if (e.key === 'Enter' || e.key === ' ') {
     e.preventDefault();
     openSettings(true, true);
   }
@@ -1232,7 +1249,7 @@ chrome.storage.onChanged.addListener((changes, area) => {
     settingsChanged(old);
   }
 });
-window.addEventListener('resize', () => requestAnimationFrame(() => { layoutVerse(); fitSites(); }));
+window.addEventListener('resize', () => requestAnimationFrame(() => { fitArt(); layoutVerse(); fitSites(); })); // fitArt: another screen
 
 (async () => {
   settings = { ...SETTINGS_DEFAULT, ...(await store.get('settings', {})) };

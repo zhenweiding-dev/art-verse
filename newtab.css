@@ -3,6 +3,7 @@
   --ink-dim: rgba(236, 231, 222, 0.68);
   --shadow-text: 0 1px 2px rgba(0, 0, 0, 0.35), 0 0 16px rgba(0, 0, 0, 0.22);
   --veil: rgba(0, 0, 0, 0.1); /* VEIL in newtab.js */
+  --page-bg: #fefdfa; /* around the painting; under the 10% veil it shows as light grey (#e5e4e1), grey-black in dark mode */
   /* Sizes follow the window height, from a MacBook window (~844px) to a 5K screen (~1330px). */
   --fs-small: clamp(13px, 1.2vh, 14px);
   --fs-body: clamp(16px, 1.45vh, 18px);
@@ -31,11 +32,13 @@
   text-shadow: var(--shadow-text);
 }
 
+@media (prefers-color-scheme: dark) { :root { --page-bg: #222120; } } /* shows as #1e1d1c */
+
 html, body {
   height: 100%;
   margin: 0;
   overflow: hidden;
-  background: #141311;
+  background: var(--page-bg);
   color: var(--ink);
   font-family: var(--ui-font);
   -webkit-font-smoothing: antialiased;
@@ -47,10 +50,12 @@ button { font: inherit; color: inherit; cursor: pointer; }
 /* ---------- wallpaper ---------- */
 #art {
   position: fixed;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+  left: 50%;
+  top: 50%;
+  width: var(--art-w, 100%); /* set by fitArt in newtab.js */
+  height: var(--art-h, 100%);
+  transform: translate(-50%, -50%);
+  object-fit: contain;
   opacity: 0;
   transition: opacity 0.5s ease;
 }
@@ -197,10 +202,9 @@ body::after { content: ""; position: fixed; inset: 0; background: var(--veil); p
 #weather-text, #weather-range, #weather-city { color: var(--ink-dim); }
 #weather-city:not(:empty)::before { content: "· "; }
 #weather:hover #weather-city, #weather:hover #weather-text { color: var(--ink); }
-#weather-source { font-size: var(--fs-small); color: var(--ink-dim); opacity: 0.6; text-decoration: none; }
-#weather-source::before { content: "· "; }
+#weather-source { margin-top: 0.5em; font-size: var(--fs-small); color: var(--ink-dim); opacity: 0.6; text-decoration: none; }
 #weather-source:hover { opacity: 1; }
-#weather-city:empty ~ #weather-source { display: none; } /* only next to weather data */
+#weather:has(#weather-city:empty) + #weather-source { display: none; } /* only under weather data */
 
 /* ---------- classical text ---------- */
 #verse {
@@ -303,9 +307,10 @@ body::after { content: ""; position: fixed; inset: 0; background: var(--veil); p
   border-radius: 16px;
   box-shadow: 0 18px 60px rgba(0, 0, 0, 0.35);
   color: var(--ink);
-  background-color: #141311;
+  background-color: var(--page-bg);
   background-image: linear-gradient(var(--veil), var(--veil)), var(--art-url, none);
-  background-size: auto, cover;
+  background-size: auto, var(--art-w, 100%) var(--art-h, 100%);
+  background-repeat: no-repeat;
   background-position: center;
   background-attachment: scroll, fixed;
   font-size: 13.5px;
