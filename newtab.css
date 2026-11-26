@@ -78,7 +78,7 @@ body::after { content: ""; position: fixed; inset: 0; background: var(--veil); p
   opacity: 0.85;
   transition: opacity 0.15s;
 }
-#corner > *:hover, #settings-btn[aria-expanded="true"] { opacity: 1; }
+#corner > *:hover, #corner > [aria-expanded="true"] { opacity: 1; }
 #corner svg { display: block; width: 100%; height: 100%; filter: var(--icon-shadow); }
 
 /* ---------- columns ---------- */
@@ -286,8 +286,8 @@ body::after { content: ""; position: fixed; inset: 0; background: var(--veil); p
 }
 
 /* ---------- settings ---------- */
-/* The card shows the painting behind it under the page's veil; its pieces take their tone like the page's blocks. */
-#settings {
+/* The cards show the painting behind them under the page's veil; their pieces take their tone like the page's blocks. */
+#settings, #apps {
   --p-track: rgba(236, 231, 222, 0.12);
   --p-on: rgba(236, 231, 222, 0.26);
   position: fixed;
@@ -312,7 +312,7 @@ body::after { content: ""; position: fixed; inset: 0; background: var(--veil); p
   line-height: 1.5;
   text-shadow: var(--shadow-text);
 }
-#settings [data-tone="dark"] { --p-track: rgba(42, 38, 34, 0.1); --p-on: rgba(42, 38, 34, 0.2); }
+#settings [data-tone="dark"], #apps [data-tone="dark"] { --p-track: rgba(42, 38, 34, 0.1); --p-on: rgba(42, 38, 34, 0.2); }
 #settings header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
 #settings h2 { margin: 0; font-size: 17px; font-weight: 500; letter-spacing: 0.04em; }
 #settings-close { width: 28px; height: 28px; border: 0; background: none; color: var(--ink-dim); font-size: 22px; line-height: 1; text-shadow: var(--shadow-text); }
@@ -339,3 +339,11 @@ body::after { content: ""; position: fixed; inset: 0; background: var(--veil); p
 .chip:has(input:focus-visible) { outline: 2px solid var(--ink-dim); outline-offset: 1px; }
 .chip .n { color: var(--ink-dim); font-size: 11px; font-variant-numeric: tabular-nums; }
 .chip:not(:has(input:checked)) { background: var(--p-track); color: var(--ink-dim); text-decoration: line-through; }
+
+/* ---------- Google apps ---------- */
+#apps { width: auto; padding: 12px; }
+#apps .grid { display: grid; grid-template-columns: repeat(3, 6.6em); gap: 2px; }
+#apps a { display: flex; flex-direction: column; align-items: center; gap: 7px; padding: 12px 4px 10px; border-radius: 10px;
+  color: var(--ink); text-decoration: none; white-space: nowrap; }
+#apps img { width: 26px; height: 26px; filter: var(--site-icon-filter) var(--icon-shadow); }
+#apps a:hover { background: var(--p-track); }

@@ -18,7 +18,7 @@ const I18N = {
     title: '新标签页',
     date: (d) => `${d.getMonth() + 1}月${d.getDate()}日 星期${'日一二三四五六'[d.getDay()]}`,
     settings: '设置', close: '关闭', language: '语言 · Language', auto: '跟随浏览器', script: '诗文', city: '城市',
-    cityPlaceholder: '上海、Boston……回车确认', unit: '温度', gmail: 'Gmail 图标', show: '显示', hide: '隐藏',
+    cityPlaceholder: '上海、Boston……回车确认', unit: '温度', apps: 'Google 应用', show: '显示', hide: '隐藏',
     paintings: '画作', artTotal: (n, all) => `显示 ${n} 幅，共 ${all} 幅`,
     continents: { americas: '美洲', europe: '欧洲', asia: '亚洲' },
     countries: { US: '美国', FR: '法国', IT: '意大利', NL: '荷兰', GB: '英国', FL: '佛兰德', ES: '西班牙', DE: '德国',
@@ -49,7 +49,7 @@ const I18N = {
     title: 'New Tab',
     date: (d) => d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }),
     settings: 'Settings', close: 'Close', language: 'Language · 语言', auto: 'Browser', script: 'Chinese text', city: 'City',
-    cityPlaceholder: 'Shanghai, Boston… then Return', unit: 'Temperature', gmail: 'Gmail icon', show: 'Show', hide: 'Hide',
+    cityPlaceholder: 'Shanghai, Boston… then Return', unit: 'Temperature', apps: 'Google apps', show: 'Show', hide: 'Hide',
     paintings: 'Paintings', artTotal: (n, all) => `${n} of ${all} paintings shown`,
     continents: { americas: 'Americas', europe: 'Europe', asia: 'Asia' },
     countries: { US: 'United States', FR: 'France', IT: 'Italy', NL: 'Netherlands', GB: 'Britain', FL: 'Flanders',
@@ -105,7 +105,7 @@ const tError = (key, ...args) => Object.assign(new Error(t(key, ...args)), { tex
 const errorText = (e) => (e.text ? e.text() : e.message);
 
 // ---------- settings ----------
-const SETTINGS_DEFAULT = { lang: 'auto', script: 'hant', unit: 'c', gmail: 'on', hidden: [] };
+const SETTINGS_DEFAULT = { lang: 'auto', script: 'hant', unit: 'c', apps: 'on', hidden: [] };
 let settings = { ...SETTINGS_DEFAULT };
 let variant = 'zh-hant'; // Wikisource converts between traditional and simplified script
 const verseRules = () => `${variant}/no-chapter-novels/variants-in-brackets`;
@@ -125,7 +125,8 @@ function applySettings() {
   variant = settings.script === 'hans' ? 'zh-hans' : 'zh-hant';
   document.documentElement.dataset.script = settings.script;
   $('#verse').lang = settings.script === 'hans' ? 'zh-Hans' : 'zh-Hant';
-  $('#gmail').hidden = settings.gmail === 'off';
+  $('#apps-btn').hidden = settings.apps === 'off';
+  renderApps();
   for (const seg of document.querySelectorAll('#settings .seg')) {
     for (const b of seg.children) b.setAttribute('aria-pressed', String(settings[seg.dataset.key] === b.dataset.v));
   }
@@ -196,7 +197,38 @@ function settingsChanged(old) {
   requestAnimationFrame(applyTones);
 }
 
+// ---------- Google apps ----------
+// [url, Chinese name, English name]. Icons come from Chrome's favicon cache, which matches by page and falls back to the
+// site, so Maps has its own host rather than www.google.com/maps; a product never opened in this Chrome shows a globe.
+const APPS = [
+  ['https://www.google.com/', '搜索', 'Search'], ['https://mail.google.com/', 'Gmail', 'Gmail'],
+  ['https://drive.google.com/', '云端硬盘', 'Drive'], ['https://docs.google.com/document/', '文档', 'Docs'],
+  ['https://docs.google.com/spreadsheets/', '表格', 'Sheets'], ['https://docs.google.com/presentation/', '幻灯片', 'Slides'],
+  ['https://calendar.google.com/', '日历', 'Calendar'], ['https://meet.google.com/', 'Meet', 'Meet'],
+  ['https://photos.google.com/', '相册', 'Photos'], ['https://maps.google.com/', '地图', 'Maps'],
+  ['https://www.youtube.com/', 'YouTube', 'YouTube'], ['https://translate.google.com/', '翻译', 'Translate'],
+];
+
+function renderApps() {
+  const grid = Object.assign(document.createElement('div'), { className: 'grid' });
+  for (const [url, zh, en] of APPS) {
+    const a = Object.assign(document.createElement('a'), { href: url, target: '_blank', rel: 'noopener' });
+    a.append(faviconImg(url), Object.assign(document.createElement('span'), { textContent: lang === 'zh' ? zh : en }));
+    grid.append(a);
+  }
+  $('#apps').replaceChildren(grid);
+}
+
+// The apps panel and the settings card take turns: opening one closes the other.
+function openApps(open) {
+  $('#apps').hidden = !open;
+  $('#apps-btn').setAttribute('aria-expanded', String(open));
+  if (open) openSettings(false);
+  requestAnimationFrame(applyTones);
+}
+
 async function openSettings(open, focusCity = false) {
+  if (open) openApps(false);
   $('#settings').hidden = !open;
   $('#settings-btn').setAttribute('aria-expanded', String(open));
   if (!open) return;
@@ -393,7 +425,7 @@ async function showNextArt() {
       setArtNote(() => t('artFallback'));
     }
     artShown = true;
-    $('#settings').style.setProperty('--art-url', `url("${img.currentSrc}")`);
+    document.documentElement.style.setProperty('--art-url', `url("${img.currentSrc}")`); // background of both cards
     img.classList.add('shown');
     applyTones();
     rememberLoaded(trying);
@@ -406,7 +438,7 @@ async function showNextArt() {
       return;
     }
     setArtNote(() => t('artFailed', museumName(artworks[idx])));
-    $('#settings').style.removeProperty('--art-url');
+    document.documentElement.style.removeProperty('--art-url');
     requestAnimationFrame(applyTones);
   };
   img.src = artworks[idx].i;
@@ -456,7 +488,7 @@ function setArtNote(fn) {
 }
 
 // ---------- most visited sites ----------
-const EXCLUDED_HOSTS = new Set(['mail.google.com']); // Gmail has its own icon
+const EXCLUDED_HOSTS = new Set(['mail.google.com']); // Gmail is in the Google apps panel
 const MAX_SITES = 15;
 const NAME_WIDTH = 15; // in Latin letters; a CJK character counts as two
 
@@ -501,8 +533,15 @@ function siteTile(s) {
   const a = Object.assign(document.createElement('a'), { href: s.url, target: '_blank', rel: 'noopener' });
   a.title = s.title ? `${s.title}\n${host}` : host;
   const icon = Object.assign(document.createElement('span'), { className: 'icon' });
+  icon.append(faviconImg(s.url));
+  a.append(icon, Object.assign(document.createElement('span'), { className: 'name', textContent: shortName(s.title, host) }));
+  return a;
+}
+
+// A page's favicon from Chrome's cache, drawn as a one-colour silhouette by CSS (--site-icon-filter).
+function faviconImg(pageUrl) {
   const u = new URL(chrome.runtime.getURL('/_favicon/'));
-  u.searchParams.set('pageUrl', s.url);
+  u.searchParams.set('pageUrl', pageUrl);
   u.searchParams.set('size', '64');
   const img = Object.assign(document.createElement('img'), { alt: '' });
   img.addEventListener('load', () => {
@@ -510,9 +549,7 @@ function siteTile(s) {
     if (shape) img.src = shape;
   }, { once: true });
   img.src = u.href;
-  icon.append(img);
-  a.append(icon, Object.assign(document.createElement('span'), { className: 'name', textContent: shortName(s.title, host) }));
-  return a;
+  return img;
 }
 
 // Icons are shown as one-colour silhouettes (a CSS filter keeps only their alpha). A favicon that is a mark on a solid
@@ -540,14 +577,38 @@ function iconShape(img) {
   if (!opaque || opaque < box * 0.75) return null; // already a shape on a transparent background (a disc is 0.79)
   const [key] = [...counts].reduce((best, c) => (c[1] > best[1] ? c : best));
   const bg = [(key >> 8) * 16 + 8, ((key >> 4) & 15) * 16 + 8, (key & 15) * 16 + 8];
+  const alpha = new Float32Array(n * n); // per pixel: how much it belongs to the mark
+  const dist = (p, q) => Math.hypot(px[p * 4] - q[0], px[p * 4 + 1] - q[1], px[p * 4 + 2] - q[2]) / 441;
+  for (let p = 0; p < n * n; p++) alpha[p] = px[p * 4 + 3] * Math.min(1, Math.max(0, (dist(p, bg) - 0.12) / 0.2));
+  // Coloured parts that reach the outline belong to a many-coloured logo (Meet's lens, Calendar's frame) rather than
+  // to a mark printed on it, so they are dropped together with what joins them in about the same colour.
+  const neighbours = (p) => {
+    const x = p % n;
+    return [x > 0 && p - 1, x < n - 1 && p + 1, p >= n && p - n, p < n * (n - 1) && p + n].filter((q) => q !== false);
+  };
+  const colour = (p) => [px[p * 4], px[p * 4 + 1], px[p * 4 + 2]];
+  const stack = [];
+  for (let p = 0; p < n * n; p++) {
+    const nb = neighbours(p);
+    if (alpha[p] > 128 && (nb.length < 4 || nb.some((q) => px[q * 4 + 3] < 200))) stack.push(p);
+  }
+  for (const p of stack) alpha[p] = 0;
+  while (stack.length) {
+    const p = stack.pop();
+    for (const q of neighbours(p)) {
+      if (alpha[q] > 128 && dist(q, colour(p)) < 0.15) {
+        alpha[q] = 0;
+        stack.push(q);
+      }
+    }
+  }
   let [mx0, my0, mx1, my1, mark] = [n, n, -1, -1, 0];
-  for (let i = 0; i < px.length; i += 4) {
-    const diff = Math.hypot(px[i] - bg[0], px[i + 1] - bg[1], px[i + 2] - bg[2]) / 441;
-    px[i + 3] *= Math.min(1, Math.max(0, (diff - 0.12) / 0.2));
-    px[i] = px[i + 1] = px[i + 2] = 255;
-    if (px[i + 3] > 128) {
-      const x = (i / 4) % n;
-      const y = Math.floor(i / 4 / n);
+  for (let p = 0; p < n * n; p++) {
+    px[p * 4] = px[p * 4 + 1] = px[p * 4 + 2] = 255;
+    px[p * 4 + 3] = alpha[p];
+    if (alpha[p] > 128) {
+      const x = p % n;
+      const y = Math.floor(p / n);
       [mx0, my0, mx1, my1] = [Math.min(mx0, x), Math.min(my0, y), Math.max(mx1, x), Math.max(my1, y)];
       mark++;
     }
@@ -825,6 +886,7 @@ function blockRects() {
     [$('#bottom'), union([...$('#sites').children, ...$('#caption-row').children])],
     [$('#corner'), union([$('#corner')])],
     ...(card.hidden ? [] : [...card.querySelectorAll(CARD_PARTS)].map((el) => [el, vis(el) ? el.getBoundingClientRect() : null])),
+    ...($('#apps').hidden ? [] : [...$('#apps').querySelectorAll('a')].map((el) => [el, el.getBoundingClientRect()])),
   ];
 }
 
@@ -1136,6 +1198,7 @@ $('#weather').addEventListener('keydown', (e) => {
   }
 });
 $('#settings-btn').addEventListener('click', () => openSettings($('#settings').hidden));
+$('#apps-btn').addEventListener('click', () => openApps($('#apps').hidden));
 $('#settings-close').addEventListener('click', () => openSettings(false));
 $('#city-form').addEventListener('submit', submitCity);
 $('#settings').addEventListener('click', (e) => {
@@ -1150,9 +1213,14 @@ $('#country-groups').addEventListener('change', (e) => {
   }
   changeSetting('hidden', hidden);
 });
-document.addEventListener('keydown', (e) => { if (e.key === 'Escape') openSettings(false); });
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape') return;
+  openSettings(false);
+  openApps(false);
+});
 document.addEventListener('click', (e) => {
   if (!$('#settings').hidden && !e.target.closest('#settings, #settings-btn, #weather')) openSettings(false);
+  if (!$('#apps').hidden && !e.target.closest('#apps, #apps-btn')) openApps(false);
 });
 chrome.storage.onChanged.addListener((changes, area) => {
   if (area !== 'local') return;

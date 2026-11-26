@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Art & Verse",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Public-domain paintings, your most visited sites, and a random classical Chinese text from Wikisource in every new tab.",
   "minimum_chrome_version": "106",
   "icons": {
