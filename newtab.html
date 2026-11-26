@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="newtab.css">
 </head>
 <body>
+  <div id="art-fill"></div>
   <img id="art" alt="">
 
   <div id="corner">
@@ -64,7 +65,7 @@
 
   <nav id="apps" data-i18n-label="apps" hidden></nav>
 
-  <aside id="settings" role="dialog" data-i18n-label="settings" hidden>
+  <aside id="settings" role="dialog" data-i18n-label="settings" hidden><div class="card-body">
     <header><h2 data-i18n="settings"></h2><button id="settings-close" type="button" data-i18n-label="close">×</button></header>
     <div class="row"><span class="label" data-i18n="language"></span>
       <div class="seg" data-key="lang"><button type="button" data-v="auto" data-i18n="auto"></button><button type="button" data-v="zh">中文</button><button type="button" data-v="en">English</button></div></div>
@@ -77,12 +78,14 @@
       <div class="seg" data-key="unit"><button type="button" data-v="c">°C</button><button type="button" data-v="f">°F</button></div></div>
     <div class="row"><span class="label" data-i18n="apps"></span>
       <div class="seg" data-key="apps"><button type="button" data-v="on" data-i18n="show"></button><button type="button" data-v="off" data-i18n="hide"></button></div></div>
+    <div class="row"><span class="label" data-i18n="fill"></span>
+      <div class="seg" data-key="fill"><button type="button" data-v="blur" data-i18n="blur"></button><button type="button" data-v="tile" data-i18n="tile"></button></div></div>
     <section class="art-countries">
       <div class="label" data-i18n="paintings"></div>
       <div id="country-groups"></div>
       <p class="hint" id="art-total"></p>
     </section>
-  </aside>
+  </div></aside>
 
   <script src="newtab.js"></script>
 </body>

@@ -59,7 +59,28 @@ button { font: inherit; color: inherit; cursor: pointer; }
   opacity: 0;
   transition: opacity 0.5s ease;
 }
-#art.shown { opacity: 1; }
+#art.shown, #art-fill.shown { opacity: 1; }
+/* Around the painting: the painting itself, enlarged and blurred (default) or repeated (data-fill="tile"). The page
+   colour shows only before a painting has loaded. --fill-w / --fill-h come from fitArt in newtab.js. */
+#art-fill {
+  position: fixed;
+  inset: -128px; /* wider than the window by about 3 x the blur radius, so the blur does not fade at the edges */
+  opacity: 0;
+  transition: opacity 0.5s ease;
+}
+#art-fill, :is(#settings, #apps)::before {
+  background: var(--art-url, none) center / var(--fill-w, 100%) var(--fill-h, 100%) no-repeat;
+  filter: blur(40px) brightness(0.75) saturate(1.1);
+}
+[data-fill="tile"] #art-fill, [data-fill="tile"] #settings::before, [data-fill="tile"] #apps::before {
+  background-size: var(--art-w, 100%) var(--art-h, 100%);
+  background-repeat: repeat;
+  filter: none;
+}
+/* Not background-attachment: fixed, which Chrome clips to the window, so the blur would fade at the window's edges;
+   alignCards in newtab.js places the cards' copy to match the page. */
+:is(#settings, #apps)::before { background-position: var(--fill-x, center) var(--fill-y, center); }
+[data-fill="tile"] #settings::before, [data-fill="tile"] #apps::before { background-position: var(--tile-x, center) var(--tile-y, center); }
 body::after { content: ""; position: fixed; inset: 0; background: var(--veil); pointer-events: none; }
 
 #corner {
@@ -290,7 +311,9 @@ body::after { content: ""; position: fixed; inset: 0; background: var(--veil); p
 }
 
 /* ---------- settings ---------- */
-/* The cards show the painting behind them under the page's veil; their pieces take their tone like the page's blocks. */
+/* The cards show what is behind them (the painting and its surround, fixed to the window like the page's) under the
+   page's veil; their pieces take their tone like the page's blocks. The settings card scrolls inside .card-body, so
+   these layers stay put. */
 #settings, #apps {
   --p-track: rgba(236, 231, 222, 0.12);
   --p-on: rgba(236, 231, 222, 0.26);
@@ -299,23 +322,29 @@ body::after { content: ""; position: fixed; inset: 0; background: var(--veil); p
   top: calc(var(--edge) + var(--icon-size) + 12px);
   right: var(--edge);
   width: 392px;
+  box-sizing: border-box;
+  overflow: hidden;
+  border-radius: 16px;
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.35);
+  color: var(--ink);
+  background-color: var(--page-bg);
+  font-size: 13.5px;
+  line-height: 1.5;
+  text-shadow: var(--shadow-text);
+}
+:is(#settings, #apps)::before, :is(#settings, #apps)::after { content: ""; position: absolute; z-index: -1; pointer-events: none; }
+:is(#settings, #apps)::before { inset: -128px; }
+:is(#settings, #apps)::after {
+  inset: 0;
+  background: linear-gradient(var(--veil), var(--veil)),
+    var(--art-url, none) center / var(--art-w, 100%) var(--art-h, 100%) no-repeat fixed;
+}
+#settings .card-body {
   max-height: calc(100vh - var(--edge) - var(--icon-size) - 36px);
   box-sizing: border-box;
   overflow-y: auto;
   scrollbar-width: none;
   padding: 22px 24px 24px;
-  border-radius: 16px;
-  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.35);
-  color: var(--ink);
-  background-color: var(--page-bg);
-  background-image: linear-gradient(var(--veil), var(--veil)), var(--art-url, none);
-  background-size: auto, var(--art-w, 100%) var(--art-h, 100%);
-  background-repeat: no-repeat;
-  background-position: center;
-  background-attachment: scroll, fixed;
-  font-size: 13.5px;
-  line-height: 1.5;
-  text-shadow: var(--shadow-text);
 }
 #settings [data-tone="dark"], #apps [data-tone="dark"] { --p-track: rgba(42, 38, 34, 0.1); --p-on: rgba(42, 38, 34, 0.2); }
 #settings header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }

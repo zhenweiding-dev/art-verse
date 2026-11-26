@@ -18,7 +18,7 @@ const I18N = {
     title: '新标签页',
     date: (d) => `${d.getMonth() + 1}月${d.getDate()}日 星期${'日一二三四五六'[d.getDay()]}`,
     settings: '设置', close: '关闭', language: '语言 · Language', auto: '跟随浏览器', script: '诗文', city: '城市',
-    cityPlaceholder: '上海、Boston……回车确认', unit: '温度', apps: 'Google 应用', show: '显示', hide: '隐藏',
+    cityPlaceholder: '上海、Boston……回车确认', unit: '温度', apps: 'Google 应用', fill: '画外填充', blur: '模糊', tile: '重复', show: '显示', hide: '隐藏',
     paintings: '画作', artTotal: (n, all) => `显示 ${n} 幅，共 ${all} 幅`,
     continents: { americas: '美洲', europe: '欧洲', asia: '亚洲' },
     countries: { US: '美国', FR: '法国', IT: '意大利', NL: '荷兰', GB: '英国', FL: '佛兰德', ES: '西班牙', DE: '德国',
@@ -49,7 +49,7 @@ const I18N = {
     title: 'New Tab',
     date: (d) => d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }),
     settings: 'Settings', close: 'Close', language: 'Language · 语言', auto: 'Browser', script: 'Chinese text', city: 'City',
-    cityPlaceholder: 'Shanghai, Boston… then Return', unit: 'Temperature', apps: 'Google apps', show: 'Show', hide: 'Hide',
+    cityPlaceholder: 'Shanghai, Boston… then Return', unit: 'Temperature', apps: 'Google apps', fill: 'Around the painting', blur: 'Blur', tile: 'Repeat', show: 'Show', hide: 'Hide',
     paintings: 'Paintings', artTotal: (n, all) => `${n} of ${all} paintings shown`,
     continents: { americas: 'Americas', europe: 'Europe', asia: 'Asia' },
     countries: { US: 'United States', FR: 'France', IT: 'Italy', NL: 'Netherlands', GB: 'Britain', FL: 'Flanders',
@@ -105,7 +105,7 @@ const tError = (key, ...args) => Object.assign(new Error(t(key, ...args)), { tex
 const errorText = (e) => (e.text ? e.text() : e.message);
 
 // ---------- settings ----------
-const SETTINGS_DEFAULT = { lang: 'auto', script: 'hant', unit: 'c', apps: 'on', hidden: [] };
+const SETTINGS_DEFAULT = { lang: 'auto', script: 'hant', unit: 'c', apps: 'on', fill: 'blur', hidden: [] };
 let settings = { ...SETTINGS_DEFAULT };
 let variant = 'zh-hant'; // Wikisource converts between traditional and simplified script
 const verseRules = () => `${variant}/no-chapter-novels/variants-in-brackets`;
@@ -126,6 +126,7 @@ function applySettings() {
   document.documentElement.dataset.script = settings.script;
   $('#verse').lang = settings.script === 'hans' ? 'zh-Hans' : 'zh-Hant';
   $('#apps-btn').hidden = settings.apps === 'off';
+  document.documentElement.dataset.fill = settings.fill;
   renderApps();
   for (const seg of document.querySelectorAll('#settings .seg')) {
     for (const b of seg.children) b.setAttribute('aria-pressed', String(settings[seg.dataset.key] === b.dataset.v));
@@ -224,6 +225,7 @@ function openApps(open) {
   $('#apps').hidden = !open;
   $('#apps-btn').setAttribute('aria-expanded', String(open));
   if (open) openSettings(false);
+  alignCards();
   requestAnimationFrame(applyTones);
 }
 
@@ -232,6 +234,7 @@ async function openSettings(open, focusCity = false) {
   $('#settings').hidden = !open;
   $('#settings-btn').setAttribute('aria-expanded', String(open));
   if (!open) return;
+  alignCards();
   showCountries();
   const city = await store.get('weatherCity', null);
   $('#city-input').value = city ? cityName(city).name : '';
@@ -416,6 +419,7 @@ async function showNextArt() {
   let trying = idx;
   artShown = false;
   img.classList.remove('shown');
+  $('#art-fill').classList.remove('shown');
   setArtNote(null);
   showCaption(artworks[idx]);
   img.onload = () => {
@@ -427,6 +431,7 @@ async function showNextArt() {
     document.documentElement.style.setProperty('--art-url', `url("${img.currentSrc}")`); // background of both cards
     fitArt();
     img.classList.add('shown');
+    $('#art-fill').classList.add('shown');
     applyTones();
     rememberLoaded(trying);
     new Image().src = artworks[state.next].i; // preload the next tab's painting into the HTTP cache
@@ -897,11 +902,42 @@ function artBox(ratio) {
   return ratio > sw / sh ? [sw, sw / ratio] : [sh * ratio, sh];
 }
 
+// The blurred surround: the painting covering the window, enlarged a little so the blur reaches past the edges.
+function fillBox(ratio) {
+  const [w, h] = ratio > innerWidth / innerHeight ? [innerHeight * ratio, innerHeight] : [innerWidth, innerWidth / ratio];
+  return [w * FILL_SCALE, h * FILL_SCALE];
+}
+const FILL_SCALE = 1.4; // the enlarged painting reaches past #art-fill's 128px overhang, so no transparent edge is blurred in
+const FILL_DIM = 0.75; // brightness() of #art-fill in newtab.css
+
 function fitArt() {
   if (!currentArt) return;
+  const root = document.documentElement.style;
   const [w, h] = artBox(currentArt.r);
-  document.documentElement.style.setProperty('--art-w', `${w}px`);
-  document.documentElement.style.setProperty('--art-h', `${h}px`);
+  const [fw, fh] = fillBox(currentArt.r);
+  root.setProperty('--art-w', `${w}px`);
+  root.setProperty('--art-h', `${h}px`);
+  root.setProperty('--fill-w', `${fw}px`);
+  root.setProperty('--fill-h', `${fh}px`);
+  alignCards();
+}
+
+// An open card repeats the page's surround in its ::before layer, which reaches CARD_OVERHANG past the card (inset in
+// newtab.css); its background is placed so that it lines up with #art-fill.
+const CARD_OVERHANG = 128;
+function alignCards() {
+  if (!currentArt) return;
+  const [aw, ah] = artBox(currentArt.r);
+  const [fw, fh] = fillBox(currentArt.r);
+  for (const card of [$('#settings'), $('#apps')]) {
+    if (card.hidden) continue;
+    const r = card.getBoundingClientRect();
+    const [x0, y0] = [r.left - CARD_OVERHANG, r.top - CARD_OVERHANG];
+    card.style.setProperty('--fill-x', `${(innerWidth - fw) / 2 - x0}px`);
+    card.style.setProperty('--fill-y', `${(innerHeight - fh) / 2 - y0}px`);
+    card.style.setProperty('--tile-x', `${(innerWidth - aw) / 2 - x0}px`);
+    card.style.setProperty('--tile-y', `${(innerHeight - ah) / 2 - y0}px`);
+  }
 }
 
 const pageLuma = () => {
@@ -909,21 +945,24 @@ const pageLuma = () => {
   return 0.299 * r + 0.587 * g + 0.114 * b;
 };
 
-// Mean luma under a viewport rectangle, on a 6 x 6 lattice: the painting where it is (centred, size from artBox),
-// the page colour elsewhere or when no painting is shown.
+// Mean luma under a viewport rectangle, on a 6 x 6 lattice: the painting where it is (centred, size from artBox); around
+// it, the repeated painting or its blurred and dimmed enlargement (fillBox); the page colour when no painting is shown.
 function lumaUnder(rect, grid, ratio) {
-  const page = pageLuma();
-  if (!grid) return page * VEIL;
+  if (!grid) return pageLuma() * VEIL;
+  const cell = (u, v) => parseInt(grid[Math.floor(v * GRID_H) * GRID_W + Math.floor(u * GRID_W)], 16) * 16 + 8;
+  const clamp = (t) => Math.min(0.999, Math.max(0, t));
+  const wrap = (t) => t - Math.floor(t);
   const [iw, ih] = artBox(ratio);
-  const ox = (innerWidth - iw) / 2;
-  const oy = (innerHeight - ih) / 2;
+  const [fw, fh] = fillBox(ratio);
   let sum = 0;
   for (let i = 0; i < 6; i++) {
     for (let j = 0; j < 6; j++) {
-      const u = (rect.left + (rect.right - rect.left) * (i + 0.5) / 6 - ox) / iw;
-      const v = (rect.top + (rect.bottom - rect.top) * (j + 0.5) / 6 - oy) / ih;
-      if (!(u >= 0 && u < 1 && v >= 0 && v < 1)) sum += page;
-      else sum += parseInt(grid[Math.floor(v * GRID_H) * GRID_W + Math.floor(u * GRID_W)], 16) * 16 + 8;
+      const x = rect.left + (rect.right - rect.left) * (i + 0.5) / 6 - innerWidth / 2;
+      const y = rect.top + (rect.bottom - rect.top) * (j + 0.5) / 6 - innerHeight / 2;
+      const [u, v] = [x / iw + 0.5, y / ih + 0.5];
+      if (u >= 0 && u < 1 && v >= 0 && v < 1) sum += cell(u, v);
+      else if (settings.fill === 'tile') sum += cell(wrap(u), wrap(v));
+      else sum += cell(clamp(x / fw + 0.5), clamp(y / fh + 0.5)) * FILL_DIM;
     }
   }
   return (sum / 36) * VEIL;
